@@ -1,18 +1,18 @@
-# ADR-0003: Data store for permit applications
+# ADR-0002: Processing and scanning uploaded permit documents
 Status: Accepted | Date: 2026-09-27 | Deciders: Ibrahim, Marwan and Abdullah
 
 ## Context
-We need to decide where Tasreeh stores applicants, permit applications, workflow status, reviewer decisions, and audit references because those records have strong relationships and a permit submission must update several records consistently. Uploaded binary documents require a different storage pattern. Related: FR-02, FR-05, FR-06, NFR-04, C-01.
+We need to decide how Tasreeh validates and malware-scans uploaded permit documents because applicants may upload files up to 20 MB, reviewers must not open an unscanned file, and NFR-03 requires the portal to acknowledge an upload within 5 seconds while completing scanning within 2 minutes. Related: FR-03, NFR-03, NFR-06.
 
 ## Options
 
 | Option | Good for us | Bad for us |
 | --- | --- | --- |
-| A: Azure Cosmos DB for all permit data and uploaded documents | Flexible document model, high horizontal scale, and globally distributed options | Permit, applicant, reviewer, decision, and audit information is relational; cross-entity transactions and reporting are more complex; storing large uploaded files in the database is inefficient; global distribution can conflict with residency controls |
-| B: Azure SQL Database for structured permit and workflow data, plus Azure Blob Storage for uploaded documents | Relational constraints and transactions support consistent workflow updates; SQL reporting is familiar; point-in-time restore, private endpoints, managed identity, and auditing support the design; Blob Storage is purpose-built for documents | Requires schema and migration management; SQL and Blob lifecycle and recovery settings must be coordinated; horizontal scaling is less flexible than Cosmos DB at extreme scale |
+| A: Scan and process each file synchronously inside the upload request | Simple sequence; applicant receives the final scan result before the request ends | Large or slow scans can exceed the 5-second acknowledgement target, create timeouts, couple portal availability to the scanner, and scale poorly during upload peaks |
+| B: Store each upload in a quarantined location, publish an event, and scan and process it asynchronously with a Function before moving it to an approved state | Fast upload acknowledgement; independent scaling and retries; isolates scanner failures from the portal; provides a clear quarantine boundary | Adds event, status, retry, and monitoring logic; applicants and reviewers must understand pending, clean, rejected, and failed states |
 
 ## Decision
-We chose Option B. Azure SQL Database will store applicants, applications, status history, reviewer decisions, document metadata, and audit references. Azure Blob Storage will store uploaded binary documents, and SQL will retain the document identifier, version, hash, scan status, and ownership relationship. We rejected Option A because Tasreeh's workflow is relational and transactional, the expected scale does not require Cosmos DB's global distribution, and uploaded binaries are better suited to Blob Storage.
+We chose Option B. Tasreeh will place every new upload in a non-public quarantined Blob Storage location with a `Pending scan` status. A storage event will trigger an asynchronous processing function and the approved malware-scanning service. Only a clean result changes the document to `Available for review`. Malware detections change the document to `Rejected`, retain only the evidence allowed by the security policy, and alert the security team. We rejected Option A because it risks missing NFR-03 and makes the interactive portal dependent on scanning duration.
 
 ## Consequences
-This makes workflow consistency, reporting, access control, and point-in-time restore straightforward. This makes the team responsible for database schema migrations and for coordinating recovery between SQL metadata and Blob versions. We must now use private endpoints, managed identities, encryption, Blob versioning and soft delete, SQL point-in-time restore, tested backup procedures, and a data-access layer that never exposes a document unless its clean scan status is recorded.
+This makes upload acknowledgement fast, permits independent scaling, and provides retry and quarantine controls. This makes the workflow more complex because the application must display processing status and prevent access while a document is pending. We must now define idempotent event handling, retry limits, a dead-letter path, scan timeouts, file-type and size validation, alerting for any malware result, and an operations procedure for documents that remain pending beyond 2 minutes.
