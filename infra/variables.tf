@@ -11,6 +11,28 @@ variable "region" {
 variable "project_prefix" {
   description = "Short prefix for resource names, e.g. tasreeh-alpha. Fill it into env/<environment>.tfvars."
   type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9-]{3,16}$", var.project_prefix))
+    error_message = "project_prefix must be 3-16 lowercase letters, numbers, or hyphens."
+  }
+}
+
+variable "sql_admin_login" {
+  description = "Bootstrap SQL administrator login. Supply securely during plan/apply; do not commit a value."
+  type        = string
+  sensitive   = true
+}
+
+variable "sql_admin_password" {
+  description = "Bootstrap SQL administrator password. Supply securely during plan/apply; do not commit a value."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = length(var.sql_admin_password) >= 16
+    error_message = "sql_admin_password must be at least 16 characters."
+  }
 }
 
 variable "vnet_address_space" {
