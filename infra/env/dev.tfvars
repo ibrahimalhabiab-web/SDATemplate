@@ -1,3 +1,3 @@
 environment    = "dev"
-region         = "___" # e.g. uaenorth -- see your ADR-0001 region decision
-project_prefix = "___" # short, lowercase, no spaces, e.g. tasreeh-alpha
+region         = "uaenorth" # Synthetic data only; see ADR-0001.
+project_prefix = "tasreeh-ima"
