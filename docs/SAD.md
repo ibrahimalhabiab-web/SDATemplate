@@ -1,5 +1,5 @@
 # Tasreeh Municipal Permit Portal — Solution Architecture Document (SAD Lite)
-Team: ___ | Version: 1.0 | Date: ___
+Team: Team: Ibrahim, Marwan and Abdullah | Version: 1.0 | Date: 2026-09-27
 
 ## 1. Summary
 This system helps ___ to ___. It runs on ___ in the ___ region.
