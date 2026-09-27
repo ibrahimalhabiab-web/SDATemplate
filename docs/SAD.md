@@ -101,9 +101,9 @@ Pricing Calculator link: ___
 
 | ADR | Decision (one line) | File |
 | --- | --- | --- |
-| 0001 | ___ | docs/adr/0001-region.md |
-| 0002 | ___ | docs/adr/0002-file-processing.md |
-| 0003 | ___ | docs/adr/0003-___.md |
+| 0001 | Use the selected Azure region according to data-residency and service-availability requirements | docs/adr/0001-region.md |
+| 0002 | Process and scan uploaded documents asynchronously | docs/adr/0002-file-processing.md |
+| 0003 | Use Azure SQL Database for relational permit information | docs/adr/0003-data-store.md |
 
 ## 11. Risks
 
