@@ -1,0 +1,15 @@
+# Terraform
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/*.tfstate
+infra/*.tfstate.backup
+infra/*.tfplan
+infra/crash.log
+
+# Python (diagrams script)
+scripts/__pycache__/
+scripts/*.png
+
+# OS/editor
+.DS_Store
+*.swp

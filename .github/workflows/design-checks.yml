@@ -1,0 +1,54 @@
+name: design-checks
+on: [pull_request, push]
+
+jobs:
+  sad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Required SAD Lite sections present
+        run: |
+          for s in "Summary" "Scope" "Requirements" "Context diagram" \
+                   "Logical architecture" "Physical architecture" "Data" \
+                   "Security" "Reliability and cost" "Decisions" "Risks"; do
+            grep -qi "^## .*$s" docs/SAD.md || { echo "Missing section: $s"; exit 1; }
+          done
+
+      - name: Three diagrams present
+        run: |
+          for d in context logical physical; do
+            test -f "docs/diagrams/$d.drawio.svg" || { echo "Missing diagram: docs/diagrams/$d.drawio.svg"; exit 1; }
+          done
+
+      - name: At least three ADRs present
+        run: |
+          count=$(ls docs/adr/*.md 2>/dev/null | grep -v '0000-template.md' | wc -l)
+          if [ "$count" -lt 3 ]; then
+            echo "Need at least 3 ADRs in docs/adr/ (found $count, not counting 0000-template.md)"
+            exit 1
+          fi
+
+      - name: No blanks or placeholders left in the SAD
+        run: |
+          if grep -n '___\|TODO\|TBD' docs/SAD.md; then
+            echo "docs/SAD.md still has ___ blanks, TODO or TBD markers above"
+            exit 1
+          fi
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+      - name: terraform fmt
+        run: terraform fmt -check -recursive
+      - name: terraform init (no backend, no credentials needed)
+        run: terraform init -backend=false
+      - name: terraform validate
+        run: terraform validate
